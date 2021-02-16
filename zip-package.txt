@@ -1,6 +1,7 @@
 sudo pip3 install --target ./package pytelegrambotapi
 sudo pip3 install --target ./package telebot
 sudo pip3 install --target ./package telepot
+sudo pip3 install --target ./package boto3
 cd package
 zip -r ../my-deployment-package.zip .
 cd ..
