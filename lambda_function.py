@@ -2,6 +2,7 @@ import telebot
 import boto3
 import os
 import datetime
+import json
 
 RESPONSE_200 = {
       "statusCode" : 200,
@@ -24,7 +25,7 @@ def lambda_handler(event, context):
     command = message.get('text', '')
     if chat['id'] == int(ADMINCHAT):
 
-        if command == '/listbucket':
+        if command == '/ListBuckets':
             s3 = boto3.client('s3')
             response = s3.list_buckets()
             buckets = 'Bucket is:'
@@ -34,7 +35,7 @@ def lambda_handler(event, context):
             return RESPONSE_200
      #
      # 2nd method:
-     #   if command == '/listbucket':
+     #   if command == '/ListBuckets':
      #       s3 = boto3.resource('s3')
      #       buckets = 'Bucket is:'
      #       for bucket in s3.buckets.all():
@@ -42,28 +43,45 @@ def lambda_handler(event, context):
      #       bot.send_message(chat['id'], buckets)
      #       return RESPONSE_200
 
-        elif command == '/getcost':
-            billing_client = boto3.client('ce')
-        #    today = date.today() 
-        #    yesterday = today - datetime.timedelta(days = 1) 
-        #    str_today = str(today) 
-        #    str_yesterday = str(yesterday)
-            #first_day_of_month = TODAY.replace(day=1)
-            #str_first_day_of_month = str(first_day_of_month)     
-        #    billing = billing_client.get_cost_and_usage(
-        #        TimePeriod={ 
-        #            'Start': str_yesterday, 
-        #            'End': str_today },
-        #        Granularity='DAILY', 
-        #        Metrics=['UnblendedCost',] 
-        #    )
-            bot.send_message(chat['id'], 'billing')
+        elif command == '/GetCurrentMonthlyCost':
+            client = boto3.client('ce')
+            todayDate  = datetime.date.today() 
+            first_day_of_month = todayDate.replace(day=1)
+            billing = client.get_cost_and_usage(
+                TimePeriod={ 
+                    "Start": str(first_day_of_month), 
+                    "End": str(todayDate)},
+                Granularity = 'MONTHLY', 
+                Metrics = ["UnblendedCost",]
+            )
+            for r in billing['ResultsByTime']:
+                str_amount=(r['Total']['UnblendedCost']['Amount'])
+
+            str_amount = str_amount[:5] + ' usd'
+            bot.send_message(chat['id'], str_amount)
             return RESPONSE_200
-        #
+
+
+        elif command == '/GetCurrentMonthlyForecast':
+            client = boto3.client('ce')
+            todayDate  = datetime.date.today() 
+            last_day_of_month = (todayDate.replace(day=1) + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
+
+            forecast = client.get_cost_forecast(
+                TimePeriod={ 
+                    "Start": str(todayDate), 
+                    "End": str(last_day_of_month)},
+                Metric = 'UNBLENDED_COST',
+                #Granularity = 'DAILY'
+                Granularity = 'MONTHLY'
+            )
+            forecast = forecast['Total']['Amount'][:5] + ' usd'
+            bot.send_message(chat['id'], forecast)
+            return RESPONSE_200
 
 
         elif command == '/help':
-            bot.send_message(chat['id'], 'You can type this: /listbucket, /getcost, /help')
+            bot.send_message(chat['id'], 'You can type this: /ListBuckets, /GetCurrentMonthlyCost, /GetCurrentMonthlyForecast, /help')
             return RESPONSE_200
 
         else:

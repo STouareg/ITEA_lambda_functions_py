@@ -1,6 +1,8 @@
 sudo pip3 install --target ./package pytelegrambotapi
 sudo pip3 install --target ./package telebot
 sudo pip3 install --target ./package telepot
+cd package
 zip -r ../my-deployment-package.zip .
+cd ..
 zip -g my-deployment-package.zip lambda_function.py
 aws lambda update-function-code --function-name TGBOT --zip-file fileb://my-deployment-package.zip
